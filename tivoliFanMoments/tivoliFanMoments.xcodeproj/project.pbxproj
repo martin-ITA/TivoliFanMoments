@@ -49,11 +49,6 @@
 			path = viewModel;
 			sourceTree = "<group>";
 		};
-		CF55ABF62DE06EBB0023A217 /* model */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = model;
-			sourceTree = "<group>";
-		};
 		CF83E53A2DBB7E4E00CF6F4C /* tivoliFanMoments */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = tivoliFanMoments;
@@ -67,6 +62,21 @@
 		CF83E5522DBB7E5000CF6F4C /* tivoliFanMomentsUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = tivoliFanMomentsUITests;
+			sourceTree = "<group>";
+		};
+		CFF3EE952DE5B4D30087B9CB /* utilities */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = utilities;
+			sourceTree = "<group>";
+		};
+		CFF3EE992DE5B54D0087B9CB /* model */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = model;
+			sourceTree = "<group>";
+		};
+		CFF3EE9D2DE5B59A0087B9CB /* Services */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Services;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -105,8 +115,10 @@
 		CF83E52F2DBB7E4E00CF6F4C = {
 			isa = PBXGroup;
 			children = (
+				CFF3EE9D2DE5B59A0087B9CB /* Services */,
+				CFF3EE992DE5B54D0087B9CB /* model */,
+				CFF3EE952DE5B4D30087B9CB /* utilities */,
 				238FF40C2DE44AB70048F344 /* extensions */,
-				CF55ABF62DE06EBB0023A217 /* model */,
 				CF55ABF22DE06E4A0023A217 /* viewModel */,
 				CF83E53A2DBB7E4E00CF6F4C /* tivoliFanMoments */,
 				CF83E5482DBB7E5000CF6F4C /* tivoliFanMomentsTests */,
@@ -143,8 +155,10 @@
 			fileSystemSynchronizedGroups = (
 				238FF40C2DE44AB70048F344 /* extensions */,
 				CF55ABF22DE06E4A0023A217 /* viewModel */,
-				CF55ABF62DE06EBB0023A217 /* model */,
 				CF83E53A2DBB7E4E00CF6F4C /* tivoliFanMoments */,
+				CFF3EE952DE5B4D30087B9CB /* utilities */,
+				CFF3EE992DE5B54D0087B9CB /* model */,
+				CFF3EE9D2DE5B59A0087B9CB /* Services */,
 			);
 			name = tivoliFanMoments;
 			packageProductDependencies = (
