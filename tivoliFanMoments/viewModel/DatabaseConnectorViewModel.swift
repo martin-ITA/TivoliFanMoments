@@ -33,6 +33,8 @@ class DatabaseConnectorViewModel {
                     logger.notice("[DatabaseConnectorViewModel] user signed out")
                 case .broadcast:
                     break
+                case .signInFailed(_):
+                    let moin = "Moin"
                 }
             }
             .store(in: &cancellables)
@@ -40,6 +42,7 @@ class DatabaseConnectorViewModel {
 
     func signIn(email: String, password: String) {
         connector.signIn(email: email, password: password)
+        
     }
     
     func signOut() {

@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct tivoliFanMomentsApp: App {
+    @StateObject private var session = SessionManager.shared
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
+        .environmentObject(session)
     }
 }

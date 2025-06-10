@@ -1,14 +1,13 @@
-//
-//  UserProfile.swift
-//  tivoliFanMoments
-//
-//  Created by Bofur on 27.05.25.
-//
-
 import Foundation
 
-struct UserProfile: Decodable, Hashable {
-    let id: UUID
+struct UserProfile: Codable, Hashable {
+    let id: Int            // ← same type the DB stores
     let email: String
     var displayname: String
+
+    enum CodingKeys: String, CodingKey {
+        case id          = "pk_nutzer"
+        case email
+        case displayname = "nutzername"
+    }
 }

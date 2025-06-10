@@ -28,9 +28,10 @@ enum DatabaseError: Error, CustomStringConvertible {
 }
 
 enum DatabaseConnectorEvent {
-    case signedIn(userProfile: UserProfile, session:Session?)
+    case signedIn(userProfile: UserProfile, session: Session? = nil) // session stays nil now
+    case signInFailed(String)
     case signedOut
-    case broadcast(payload:[String:String])
+    case broadcast(payload: [String: String])
 }
 
 final class DatabaseConnector {
@@ -75,7 +76,7 @@ final class DatabaseConnector {
                     do {
                         guard let session = session,
                               let email = session.user.email else { throw DatabaseError.invalidUserProfile }
-                        let userProfile = UserProfile(id: session.user.id, email: email, displayname: "Moin")
+                        let userProfile = UserProfile(id: 0, email: email, displayname: "Moin")
                         self.isAuthenticated = true
                         self.userProfile = userProfile
                         eventSubject.send(.signedIn(userProfile: userProfile, session: session))
@@ -126,17 +127,36 @@ final class DatabaseConnector {
     
     // deinit { maybe something to clean up }
     
+    // ───────── DatabaseConnector.swift ────────────────────────────
     func signIn(email: String, password: String) {
-        Task {
+        Task { @MainActor in
             do {
                 logger.notice("[SupabaseConnector] sign in, email:\(email)")
-                try await client.auth.signIn(email: email, password: password)
-                logger.notice("[SupabaseConnector] sign in worked")
+
+                // ① ask for ONE row that matches e-mail & password
+                let user: UserProfile = try await client
+                    .from("tbl_nutzer")
+                    .select()                       // * = all columns
+                    .eq("email",     value: email)
+                    .eq("passwort",  value: password)
+                    .single()                       // expect exactly 1 row
+                    .execute()
+                    .value                          // ← decoded to UserProfile
+
+                // ② update state and broadcast success
+                self.isAuthenticated = true
+                self.userProfile     = user
+                eventSubject.send(.signedIn(userProfile: user))
+
             } catch {
-                logger.error("[SupabaseConnector] sign in error:\(error)")
+                logger.error("[SupabaseConnector] sign in error: \(error)")
+                self.isAuthenticated = false
+                self.userProfile     = nil
+                eventSubject.send(.signInFailed("Login fehlgeschlagen"))
             }
         }
     }
+
 
     func signOut() {
         Task {
@@ -162,4 +182,25 @@ final class DatabaseConnector {
     }
      */
 
+    func fetchAllSaisons() async throws -> [Saison] {
+        logger.notice("[DatabaseConnector] fetchAllSaisons() started")
+
+        do {
+            let saisons: [Saison] = try await client
+                .from("tbl_saison")
+                .select("pk_saison, bezeichnung")
+                .order("bezeichnung", ascending: true)
+                .execute()
+                .value
+
+            logger.notice("[DatabaseConnector] fetchAllSaisons() success, count: \(saisons.count)")
+            return saisons
+        } catch {
+            logger.error("[DatabaseConnector] fetchAllSaisons() error: \(error)")
+            throw error
+        }
+    }
+
+
+    
 }
