@@ -3,25 +3,18 @@ import SwiftUI
 struct GamesOverviewView: View {
     @EnvironmentObject private var session: SessionManager
     @StateObject private var saisonVM = SaisonViewModel()
+    @StateObject private var begegnungVM = BegegnungViewModel()
     @State private var selectedSaisonId: Int? = nil
-    
+
     var body: some View {
         NavigationView {
             ZStack {
                 Color.black.ignoresSafeArea()
-                
-                // Hauptbereich als eigene Computed Property
                 mainContent
             }
             .navigationTitle("Spiele")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                // Toolbar-Logik als eigene Computed Property
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    toolbarContent
-                }
-            }
-            // Alert-Bindung als eigene Property
+            
             .alert(item: errorAlertBinding) { error in
                 Alert(
                     title: Text("Datenbank‐Fehler"),
@@ -34,50 +27,87 @@ struct GamesOverviewView: View {
                     selectedSaisonId = first.id
                 }
             }
+            .onChange(of: selectedSaisonId) { newId in
+                if let saisonId = newId {
+                    Task {
+                        await begegnungVM.load(saisonId: saisonId)
+                    }
+                }
+            }
         }
     }
 }
 
-// MARK: - Erweiterungen für GamesOverviewView
+// MARK: - Erweiterungen
 
 private extension GamesOverviewView {
     
-    /// Hauptinhalte als eigene Property
     var mainContent: some View {
-        VStack(spacing: 12) {
-            Text("Hallo \(session.currentUser?.displayname ?? "Gast")!")
-                .foregroundColor(.yellow)
-                .font(.headline)
+        VStack(spacing: 16) {
 
             Text("Hier ist deine Spielübersicht.")
                 .foregroundColor(.yellow)
 
+            if !saisonVM.saisons.isEmpty {
+                SaisonsPickerView(
+                    saisons: saisonVM.saisons,
+                    selectedSaisonId: $selectedSaisonId
+                )
+            }
+
             if saisonVM.saisons.isEmpty && saisonVM.errorMessage == nil {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle(tint: .yellow))
+            } else if !begegnungVM.begegnungen.isEmpty {
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(begegnungVM.begegnungen) { begegnung in
+                            NavigationLink(destination: SpielDetailView(begegnung: begegnung)) {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text(begegnung.heim.name)
+                                        Spacer()
+                                        Text("\(begegnung.heimTore ?? 0) : \(begegnung.gastTore ?? 0)")
+                                            .bold()
+                                            .foregroundColor(.white)
+                                        Spacer()
+                                        Text(begegnung.gast.name)
+                                    }
+                                    .foregroundColor(.white)
+                                }
+                                .padding()
+                                .background(Color.white.opacity(0.05))
+                                .cornerRadius(12)
+                            }
+                            .padding()
+                            .background(Color.white.opacity(0.05))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.yellow.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                    }
+                    .padding(.top)
+                }
+            
+
+            } else if let error = begegnungVM.errorMessage {
+                Text("Fehler: \(error)")
+                    .foregroundColor(.red)
+            } else {
+                Text("Keine Begegnungen vorhanden.")
+                    .foregroundColor(.gray)
             }
 
             Spacer()
         }
         .padding()
     }
-    
-    /// Toolbar als eigene Property
-    @ViewBuilder
-    var toolbarContent: some View {
-        if saisonVM.saisons.isEmpty {
-            Text("…")
-                .foregroundColor(.yellow)
-        } else {
-            // Picker in einer Subview gekapselt
-            SaisonsPickerView(
-                saisons: saisonVM.saisons,
-                selectedSaisonId: $selectedSaisonId
-            )
-        }
-    }
-    
-    /// Alert-Bindung als eigene Property
+
+
+
+
     var errorAlertBinding: Binding<MyError?> {
         Binding<MyError?>(
             get: {
@@ -101,7 +131,7 @@ private struct SaisonsPickerView: View {
         let currentLabel = saisons.first(where: { $0.id == currentId })?.bezeichnung
             ?? saisons.first?.bezeichnung
             ?? "Unbekannt"
-        
+
         let selectionBinding = Binding<Int>(
             get: { currentId },
             set: { newId in
@@ -120,7 +150,7 @@ private struct SaisonsPickerView: View {
     }
 }
 
-// MARK: - Fehler-Typ zum Alert
+// MARK: - Fehler-Typ
 
 private struct MyError: Identifiable {
     let id = UUID()
