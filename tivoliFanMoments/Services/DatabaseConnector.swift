@@ -201,6 +201,69 @@ final class DatabaseConnector {
         }
     }
 
+    func fetchAllGames(saisonId: Int) async throws -> [Begegnung] {
+        logger.notice("[DatabaseConnector] fetchAllGames() started")
 
+        do {
+            let response = try await client
+                .from("tbl_begegnung")
+                .select("""
+                    pk_begegnung,
+                    spieltag,
+                    heim_tore,
+                    gast_tore,
+                    fk_mannschaft_heim (
+                        pk_mannschaft,
+                        name
+                    ),
+                    fk_mannschaft_gast (
+                        pk_mannschaft,
+                        name
+                    )
+                """)
+                .eq("fk_saison", value: saisonId)
+                .execute()
+
+            let data = response.data
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("[DEBUG] Raw JSON:\n\(jsonString)")
+            }
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .useDefaultKeys
+            let result = try decoder.decode([Begegnung].self, from: data)
+            return result
+
+        } catch {
+            logger.error("[DatabaseConnector] fetchAllGames() error: \(error)")
+            throw error
+        }
+    }
     
+    func fetchMomente(begegnungId: Int) async throws -> [Moment] {
+        logger.notice("[DatabaseConnector] fetchMomente() started")
+
+        do {
+            let response = try await client
+                .from("tbl_moment")
+                .select("pk_moment, minute, art")
+                .eq("fk_begegnung", value: begegnungId)
+                .order("minute", ascending: true)
+                .execute()
+
+            let data = response.data
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("[DEBUG] Raw JSON:\n\(jsonString)")
+            }
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .useDefaultKeys
+            let result = try decoder.decode([Moment].self, from: data)
+            return result
+        } catch {
+            logger.error("[DatabaseConnector] fetchMomente() error: \(error)")
+            throw error
+        }
+    }
+
+
+
 }
