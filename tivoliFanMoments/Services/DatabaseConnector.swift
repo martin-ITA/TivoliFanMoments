@@ -156,7 +156,24 @@ final class DatabaseConnector {
             }
         }
     }
+    
+    func countUploadsPerMoment(momentId: Int) async throws -> Int {
+        logger.notice("[SupabaseConnector] Counting uploads for momentId:\(momentId)")
 
+        let response = try await client
+            .from("tbl_upload")
+            .select("pk_upload", count: .exact) // use .exact to get the precise count
+            .eq("fk_moment", value: momentId)
+            .execute()
+
+        if let count = response.count {
+            logger.notice("[SupabaseConnector] Upload count: \(count)")
+            return count
+        } else {
+            logger.warning("[SupabaseConnector] No count available, returning 0")
+            return 0
+        }
+    }
 
     func signOut() {
         Task {
@@ -264,6 +281,34 @@ final class DatabaseConnector {
         }
     }
 
+    
+    /// Reads all uploads that belong to one moment.
+    func fetchUploads(momentId: Int) async throws -> [Upload] {
+        logger.notice("[DatabaseConnector] fetchUploads() started for momentId \(momentId)")
+        
+        do {
+            let response = try await client
+                .from("tbl_upload")
+                .select("pk_upload, fk_moment, typ, dateipfad, beschreibung")
+                .eq("fk_moment", value: momentId)
+                .order("pk_upload", ascending: true)
+                .execute()
+            
+            // Helpful when debugging JSON ↔︎ model mapping
+            if let json = String(data: response.data, encoding: .utf8) {
+                print("[DEBUG] Raw JSON uploads:\n\(json)")
+            }
+            
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .useDefaultKeys
+            let uploads = try decoder.decode([Upload].self, from: response.data)
+            return uploads
+        } catch {
+            logger.error("[DatabaseConnector] fetchUploads() error: \(error)")
+            throw error
+        }
+    }
+    
 
 
 }
