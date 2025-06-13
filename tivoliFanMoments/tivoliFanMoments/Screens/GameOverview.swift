@@ -65,21 +65,43 @@ private extension GamesOverviewView {
                             NavigationLink(destination: SpielDetailView(begegnung: begegnung)) {
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
-                                        Text(begegnung.heim.name)
-                                        Spacer()
+                                        // Heimteam: Logo + Name
+                                        HStack(spacing: 8) {
+                                            Image("\(begegnung.heim.id)")
+                                                .resizable()
+                                                .frame(width: 30, height: 30)
+                                                .cornerRadius(6)
+                                            Text(begegnung.heim.name)
+                                                .foregroundColor(.white)
+                                                .fontWeight(.semibold)
+                                        }
+
+                                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+                                        
+                                        // Tore zentriert
                                         Text("\(begegnung.heimTore ?? 0) : \(begegnung.gastTore ?? 0)")
                                             .bold()
                                             .foregroundColor(.white)
-                                        Spacer()
-                                        Text(begegnung.gast.name)
+                                            .frame(width: 40, alignment: .center) // Fixe Breite für konstante Zentrierung
+                                        
+                                        // Gastteam: Name + Logo
+                                        HStack(spacing: 8) {
+                                            Image("\(begegnung.gast.id)")
+                                                .resizable()
+                                                .frame(width: 30, height: 30)
+                                                .cornerRadius(6)
+                                            Text(begegnung.gast.name)
+                                                .foregroundColor(.white)
+                                                .fontWeight(.semibold)
+                                        }
+                                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .trailing)
                                     }
-                                    .foregroundColor(.white)
                                 }
                                 .padding()
                                 .background(Color.white.opacity(0.05))
                                 .cornerRadius(12)
                             }
-                            .padding()
+                            .padding(.horizontal)
                             .background(Color.white.opacity(0.05))
                             .cornerRadius(12)
                             .overlay(
@@ -90,9 +112,8 @@ private extension GamesOverviewView {
                     }
                     .padding(.top)
                 }
-            
-
-            } else if let error = begegnungVM.errorMessage {
+            }
+ else if let error = begegnungVM.errorMessage {
                 Text("Fehler: \(error)")
                     .foregroundColor(.red)
             } else {
