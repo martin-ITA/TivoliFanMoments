@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct UploadView: View {
+    let begegnung: Begegnung
+    
     @State private var selectedEvent = "Tor"
     let events = ["Tor", "Foul", "Ecke", "Freistoß", "Elfmeter"]
     
@@ -10,8 +12,7 @@ struct UploadView: View {
     
     var body: some View {
         ZStack {
-            Color.black
-                .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
             
             VStack(spacing: 20) {
                 Text("Upload")
@@ -19,28 +20,23 @@ struct UploadView: View {
                     .fontWeight(.bold)
                     .foregroundColor(.yellow)
                 
-                // Medientyp-Auswahl
                 Picker("Medientyp", selection: $selectedMediaType) {
                     ForEach(mediaTypes, id: \.self) { type in
                         Text(type)
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
-                .background(Color.white.opacity(0.1))
-                .cornerRadius(10)
                 .padding(.horizontal, 20)
                 
-                // Ereignis-Auswahl
                 Picker("Ereignis", selection: $selectedEvent) {
                     ForEach(events, id: \.self) { event in
                         Text(event)
                     }
                 }
                 .pickerStyle(MenuPickerStyle())
-                .foregroundColor(.yellow)
                 .padding(.horizontal, 20)
+                .foregroundColor(.yellow)
                 
-                // Minute
                 TextField("", text: $minute)
                     .keyboardType(.numberPad)
                     .padding()
@@ -49,40 +45,35 @@ struct UploadView: View {
                     .foregroundColor(.yellow)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow, lineWidth: 1))
                     .placeholder(when: minute.isEmpty) {
-                        Text("Minute")
-                            .foregroundColor(.yellow.opacity(0.7))
-                            .padding(.leading, 8)
+                        Text("Minute").foregroundColor(.yellow.opacity(0.7))
                     }
                     .padding(.horizontal, 20)
                 
-                // Upload-Button
-                Button(action: {
-                    // Upload-Logik später
-                }) {
-                    Text("Datei hochladen")
-                        .foregroundColor(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.yellow)
-                        .cornerRadius(10)
+                Button("Datei hochladen") {
+                    // TODO: Upload-Logik
                 }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.yellow)
+                .cornerRadius(10)
                 .padding(.horizontal, 20)
                 
                 Spacer()
                 
-                // 📌 Platzhalter für Spiel-Infos
+                // Spiel-Infos mit deinen Models
                 VStack(alignment: .leading, spacing: 10) {
                     Text("Spiel-Informationen:")
                         .font(.headline)
                         .foregroundColor(.yellow)
                     
-                    Text("⚽ Heimteam: Alemeannia Aachen")
+                    Text("⚽ Heimteam: \(begegnung.heim.name)")
                         .foregroundColor(.yellow.opacity(0.8))
                     
-                    Text("⚽ Auswärtsteam: Musterstadt 09")
+                    Text("⚽ Auswärtsteam: \(begegnung.gast.name)")
                         .foregroundColor(.yellow.opacity(0.8))
                     
-                    Text("📅 Datum: 01.01.2025")
+                    Text("📅 Spieltag: \(begegnung.spieltag)")
                         .foregroundColor(.yellow.opacity(0.8))
                 }
                 .padding()

@@ -49,7 +49,7 @@ final class DatabaseConnector {
     var channel : RealtimeChannelV2
     
     var isAuthenticated = false
-    var userProfile: UserProfile? = nil
+    static var userProfile: UserProfile? = nil
 
     init() {
         // from supabase project
@@ -78,7 +78,7 @@ final class DatabaseConnector {
                               let email = session.user.email else { throw DatabaseError.invalidUserProfile }
                         let userProfile = UserProfile(id: 0, email: email, displayname: "Moin")
                         self.isAuthenticated = true
-                        self.userProfile = userProfile
+                        DatabaseConnector.userProfile = userProfile
                         eventSubject.send(.signedIn(userProfile: userProfile, session: session))
                     } catch {
                         if event == .signedIn {
@@ -88,7 +88,7 @@ final class DatabaseConnector {
                     }
                 case .signedOut:
                     self.isAuthenticated = false
-                    self.userProfile = nil
+                    DatabaseConnector.userProfile = nil
                     eventSubject.send(.signedOut)
                 // case .tokenRefreshed:   // handle token refresh if necessary
                 // case .userUpdated:      // handle user updates if necessary
@@ -145,13 +145,13 @@ final class DatabaseConnector {
 
                 // ② update state and broadcast success
                 self.isAuthenticated = true
-                self.userProfile     = user
+                DatabaseConnector.userProfile     = user
                 eventSubject.send(.signedIn(userProfile: user))
 
             } catch {
                 logger.error("[SupabaseConnector] sign in error: \(error)")
                 self.isAuthenticated = false
-                self.userProfile     = nil
+                DatabaseConnector.userProfile     = nil
                 eventSubject.send(.signInFailed("Login fehlgeschlagen"))
             }
         }
@@ -280,8 +280,41 @@ final class DatabaseConnector {
             throw error
         }
     }
-
     
+    func findGameByQRCode(_ code: String) async throws -> Begegnung? {
+        logger.notice("[DatabaseConnector] findGameByQRCode() started")
+        
+        do {
+            let response = try await client
+                .from("tbl_begegnung")
+                .select("""
+                    pk_begegnung,
+                    spieltag,
+                    heim_tore,
+                    gast_tore,
+                    qr_code,
+                    fk_mannschaft_heim (
+                        pk_mannschaft,
+                        name
+                    ),
+                    fk_mannschaft_gast (
+                        pk_mannschaft,
+                        name
+                    )
+                """)
+                .eq("qr_code", value: code)
+                .single()
+                .execute()
+            
+            let result = try JSONDecoder().decode(Begegnung.self, from: response.data)
+            print(result)
+            return result
+        } catch {
+            logger.error("[DatabaseConnector] findGameByQRCode() error: \(error)")
+            return nil
+        }
+    }
+
     /// Reads all uploads that belong to one moment.
     func fetchUploads(momentId: Int) async throws -> [Upload] {
         logger.notice("[DatabaseConnector] fetchUploads() started for momentId \(momentId)")
@@ -309,6 +342,48 @@ final class DatabaseConnector {
         }
     }
     
+    func recordVisit(begegnungId: Int) async throws {
+        _ = try await client
+            .from("tbl_besuche")
+            .insert([
+                "fk_nutzer": DatabaseConnector.userProfile?.id,
+                "fk_begegnung": begegnungId
+                ]
+            )
+            .execute()
+    }
+
+    func fetchBesuchteBegegnungen(userId: Int) async throws -> [Begegnung] {
+        let response = try await client
+            .from("tbl_besuche")
+            .select("""
+                fk_begegnung (
+                    pk_begegnung,
+                    spieltag,
+                    heim_tore,
+                    gast_tore,
+                    qr_code,
+                    fk_mannschaft_heim (
+                        pk_mannschaft,
+                        name
+                    ),
+                    fk_mannschaft_gast (
+                        pk_mannschaft,
+                        name
+                    )
+                )
+            """)
+            .eq("fk_nutzer", value: DatabaseConnector.userProfile?.id)
+            .execute()
+
+        struct BesuchWrapper: Decodable {
+            let fk_begegnung: Begegnung
+        }
+
+        let decoded = try JSONDecoder().decode([BesuchWrapper].self, from: response.data)
+        return decoded.map { $0.fk_begegnung }
+    }
+
 
 
 }
