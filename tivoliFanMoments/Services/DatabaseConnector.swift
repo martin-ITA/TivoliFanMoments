@@ -417,6 +417,7 @@ final class DatabaseConnector {
         let typ: String
         let beschreibung: String
         let dateipfad: String
+        let fk_nutzer: Int
     }
 
     func createUpload(momentId: Int,
@@ -427,7 +428,8 @@ final class DatabaseConnector {
             fk_moment: momentId,
             typ: ext,
             beschreibung: description ?? "",
-            dateipfad: "\(momentId).\(ext)"
+            dateipfad: "\(momentId).\(ext)",
+            fk_nutzer: SessionManager.shared.currentUser!.id
         )
 
         try await client
