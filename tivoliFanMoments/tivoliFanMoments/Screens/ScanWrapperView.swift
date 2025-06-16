@@ -5,6 +5,16 @@ struct ScanWrapperView: View {
     @State private var manualCode: String = ""
     @State private var path = NavigationPath()
 
+    private func submitCode() {
+        let trimmed = manualCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        print("📨 Submitting code: \(trimmed)")
+        viewModel.lookup(trimmed) { result in
+            if let game = result {
+                path.append(game)
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack(path: $path) {
             ZStack {
@@ -13,11 +23,9 @@ struct ScanWrapperView: View {
                 VStack(spacing: 0) {
                     // 📷 Scanner oben
                     QRCodeScannerView { code in
-                        viewModel.lookup(code) { result in
-                            if let game = result {
-                                path.append(game)
-                            }
-                        }
+                        print("🔍 Detected QR code: \(code)")
+                        manualCode = code
+                        submitCode()
                     }
                     .frame(height: 400)
                     .overlay(
@@ -49,12 +57,7 @@ struct ScanWrapperView: View {
                                 )
 
                             Button(action: {
-                                let trimmed = manualCode.trimmingCharacters(in: .whitespacesAndNewlines)
-                                viewModel.lookup(trimmed) { result in
-                                    if let game = result {
-                                        path.append(game)
-                                    }
-                                }
+                                submitCode()
                             }) {
                                 Image(systemName: "arrow.right.circle.fill")
                                     .resizable()
