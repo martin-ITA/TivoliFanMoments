@@ -16,8 +16,8 @@ struct Upload: Identifiable, Decodable {
     /// Quick helper to decide which UI we show
     var kind: UploadKind {
         switch ext.lowercased() {
-        case "mp4", "mov": return .video
-        default           : return .image
+        case "mp4", "mov", "m4v": return .video
+        default                : return .image
         }
     }
 }

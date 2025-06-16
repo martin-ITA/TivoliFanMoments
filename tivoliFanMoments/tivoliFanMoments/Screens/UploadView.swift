@@ -1,5 +1,7 @@
 import SwiftUI
 import PhotosUI
+import UniformTypeIdentifiers
+
 
 struct UploadView: View {
     let begegnung: Begegnung
@@ -13,6 +15,7 @@ struct UploadView: View {
     
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var mediaData: Data? = nil
+    @State private var fileExtension: String? = nil
 
     private let db = DatabaseConnector()
     private let storage = StorageConnector()
@@ -64,13 +67,27 @@ struct UploadView: View {
                         .background(Color.yellow)
                         .cornerRadius(10)
                 }
-                .onChange(of: pickerItem) { newItem in
+                .onChange(of: pickerItem) {
                     Task {
-                        if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                        guard let item = pickerItem else {
+                            mediaData = nil
+                            fileExtension = nil
+                            return
+                        }
+
+                        if let data = try? await item.loadTransferable(type: Data.self) {
                             mediaData = data
+                        }
+
+                        if let utType = item.supportedContentTypes.first {
+                            fileExtension = utType.preferredFilenameExtension
+                        } else {
+                            // fallback
+                            fileExtension = selectedMediaType == "Foto" ? "jpg" : "mp4"
                         }
                     }
                 }
+
                 .padding(.horizontal, 20)
                 
                 Button("Datei hochladen") {
@@ -118,8 +135,8 @@ struct UploadView: View {
 
         do {
             let momentId = try await db.createMoment(begegnungId: begegnung.id, minute: minuteInt, art: selectedEvent)
-            let ext = selectedMediaType == "Foto" ? "jpg" : "mp4"
-            let folder = selectedMediaType == "Foto" ? "fanuploads/Photos" : "fanuploads/Videos"
+            let ext = (fileExtension ?? (selectedMediaType == "Foto" ? "jpg" : "mp4")).lowercased()
+            let folder = ["mp4", "mov", "m4v"].contains(ext) ? "fanuploads/Videos" : "fanuploads/Photos"
             let path = "\(folder)/\(momentId).\(ext)"
 
             try await storage.upload(data: data, path: path)
