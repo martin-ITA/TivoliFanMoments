@@ -44,8 +44,10 @@ struct UploadOverviewView: View {
                                 .padding(.vertical, 6)
                             }
                             .listRowBackground(Color.black)
+                        }
+                        .scrollContentBackground(.hidden)
+                        .background(Color.black)
 
-                        }.background(Color.black)
                 }
 }
             }
