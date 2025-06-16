@@ -9,13 +9,16 @@ struct QRCodeScannerView: UIViewControllerRepresentable {
             self.parent = parent
         }
 
-        func metadataOutput(_ output: AVCaptureMetadataOutputObjectsDelegate,
+        func metadataOutput(_ output: AVCaptureMetadataOutput,
                             didOutput metadataObjects: [AVMetadataObject],
                             from connection: AVCaptureConnection) {
             if let metadataObject = metadataObjects.first as? AVMetadataMachineReadableCodeObject,
                let stringValue = metadataObject.stringValue {
+                print("📷 Scanned code: \(stringValue)")
                 AudioServicesPlaySystemSound(SystemSoundID(kSystemSoundID_Vibrate))
                 parent.completion(stringValue)
+            } else {
+                print("⚠️ No QR code detected")
             }
         }
     }
