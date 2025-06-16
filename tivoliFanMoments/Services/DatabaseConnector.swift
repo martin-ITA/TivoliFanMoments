@@ -422,21 +422,47 @@ final class DatabaseConnector {
 
     func createUpload(momentId: Int,
                       ext: String,
-                      description: String?) async throws {
-
+                      description: String?) async throws -> Int {
         let newUpload = NewUpload(
             fk_moment: momentId,
             typ: ext,
             beschreibung: description ?? "",
-            dateipfad: "\(momentId).\(ext)",
+            dateipfad: "", // initially empty
             fk_nutzer: SessionManager.shared.currentUser!.id
         )
 
-        try await client
+        // Insert upload, request pk_upload back
+        let insertResponse = try await client
             .from("tbl_upload")
             .insert(newUpload)
+            .select("pk_upload, typ, beschreibung, dateipfad, fk_nutzer, fk_moment")
+            .single()
             .execute()
+
+        struct InsertedUpload: Decodable {
+            let pk_upload: Int
+            let typ: String
+            let beschreibung: String
+            let dateipfad: String
+            let fk_nutzer: Int
+            let fk_moment: Int
+        }
+
+        let inserted = try JSONDecoder().decode(InsertedUpload.self, from: insertResponse.data)
+
+        let newDateipfad = "\(inserted.pk_upload).\(ext)"
+
+        // Update just this row
+        try await client
+            .from("tbl_upload")
+            .update(["dateipfad": newDateipfad])
+            .eq("pk_upload", value: inserted.pk_upload)
+            .execute()
+
+        return inserted.pk_upload
     }
+
+
 
 
 }

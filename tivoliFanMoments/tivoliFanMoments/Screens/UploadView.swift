@@ -7,7 +7,7 @@ struct UploadView: View {
     let begegnung: Begegnung
     
     @State private var selectedEvent = "Tor"
-    let events = ["Tor", "Foul", "Ecke", "Freistoß", "Elfmeter"]
+    let events = ["Tor", "Torchance", "Foul", "Gelbe Karte", "Rote Karte", "Ecke", "Freistoss", "Elfmeter"]
     
     @State private var minute: String = ""
     @State private var selectedMediaType: String = "Foto"
@@ -136,11 +136,11 @@ struct UploadView: View {
         do {
             let momentId = try await db.createMoment(begegnungId: begegnung.id, minute: minuteInt, art: selectedEvent)
             let ext = (fileExtension ?? (selectedMediaType == "Foto" ? "jpg" : "mp4")).lowercased()
-            let folder = ["mp4", "mov", "m4v"].contains(ext) ? "fanuploads/Videos" : "fanuploads/Photos"
-            let path = "\(folder)/\(momentId).\(ext)"
-
+            let folder = ["mp4", "mov", "m4v"].contains(ext) ? "Videos" : "Photos"
+            let id = try await db.createUpload(momentId: momentId, ext: ext, description: nil)
+            let path = "\(folder)/\(id).\(ext)"
             try await storage.upload(data: data, path: path)
-            try await db.createUpload(momentId: momentId, ext: ext, description: nil)
+            
         } catch {
             print("⚠️ upload failed", error)
         }
