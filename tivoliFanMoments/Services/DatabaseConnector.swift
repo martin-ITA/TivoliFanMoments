@@ -461,6 +461,108 @@ final class DatabaseConnector {
 
         return inserted.pk_upload
     }
+    
+    /// Returns the number of reactions of each type for the given upload.
+        func fetchReactionCounts(uploadId: Int) async throws -> [ReactionType: Int] {
+            var result: [ReactionType: Int] = [:]
+
+            for type in ReactionType.allCases {
+                let response = try await client
+                    .from("tbl_interaktion")
+                    .select("fk_upload", count: .exact)
+                    .eq("fk_upload", value: uploadId)
+                    .eq("reaktion", value: type.rawValue)
+                    .execute()
+
+                result[type] = response.count ?? 0
+            }
+
+            return result
+        }
+
+        /// Returns the current user's reaction for the given upload if it exists.
+        func fetchUserReaction(uploadId: Int) async throws -> ReactionType? {
+            guard let userId = SessionManager.shared.currentUser?.id else { return nil }
+
+            do {
+                let response = try await client
+                    .from("tbl_interaktion")
+                    .select("reaktion")
+                    .eq("fk_upload", value: uploadId)
+                    .eq("fk_nutzer", value: userId)
+                    .single()
+                    .execute()
+
+                struct ReactionWrapper: Decodable { let reaktion: ReactionType }
+                return try JSONDecoder().decode(ReactionWrapper.self, from: response.data).reaktion
+            } catch {
+                return nil
+            }
+        }
+
+        /// Stores a reaction for the given upload from the current user.
+        /// If a reaction already exists it will be updated.
+    func setReaction(uploadId: Int, reaction: ReactionType) async throws {
+        guard let userId = SessionManager.shared.currentUser?.id else { return }
+
+        struct Interaction: Codable {
+            let fk_upload: Int
+            let fk_nutzer: Int
+            let reaktion: String
+        }
+
+        // Wrapper that matches the SELECT "reaktion" you perform
+        struct ReactionWrapper: Decodable { let reaktion: String }
+
+        let values = Interaction(
+            fk_upload: uploadId,
+            fk_nutzer: userId,
+            reaktion : reaction.rawValue
+        )
+
+        do {
+            // ── does a row already exist? ────────────────────────────────
+            let existing = try await client
+                .from("tbl_interaktion")
+                .select("reaktion")
+                .eq("fk_upload", value: uploadId)
+                .eq("fk_nutzer", value: userId)
+                .single()
+                .execute()
+
+            let decoded = try JSONDecoder().decode(ReactionWrapper.self,
+                                                   from: existing.data)
+
+            if decoded.reaktion == reaction.rawValue {
+                // same button tapped again → delete the row
+                try await client
+                    .from("tbl_interaktion")
+                    .delete()
+                    .eq("fk_upload", value: uploadId)
+                    .eq("fk_nutzer", value: userId)
+                    .execute()
+            } else {
+                // different reaction → update the existing row
+                try await client
+                    .from("tbl_interaktion")
+                    .update(["reaktion": reaction.rawValue])
+                    .eq("fk_upload", value: uploadId)
+                    .eq("fk_nutzer", value: userId)
+                    .execute()
+            }
+
+        } catch let error as PostgrestError where error.code == "PGRST116" {
+            // no row found → insert a new one
+            try await client
+                .from("tbl_interaktion")
+                .insert(values)
+                .execute()
+        } catch {
+            throw error        // bubble up everything else
+        }
+    }
+
+
 
 
 

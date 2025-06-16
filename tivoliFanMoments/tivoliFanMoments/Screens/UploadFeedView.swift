@@ -43,6 +43,11 @@ private struct UploadTile: View {
     let upload: Upload
     let storage: StorageConnector
     
+    @State private var reactionCounts: [ReactionType: Int] = [:]
+    @State private var userReaction: ReactionType? = nil
+
+    private let db = DatabaseConnector()
+    
     var body: some View {
         switch upload.kind {
         case .image:
@@ -55,7 +60,7 @@ private struct UploadTile: View {
                     }
                 }
                 .cornerRadius(12)
-                .padding(.horizontal)
+                    .padding(.horizontal)
             }
 
         case .video:
@@ -66,6 +71,47 @@ private struct UploadTile: View {
                     .padding(.horizontal)
             }
         }
+        
+        HStack(spacing: 24) {
+                reactionButton(.like, systemName: "hand.thumbsup")
+                reactionButton(.lachen, systemName: "face.smiling")
+                reactionButton(.herz, systemName: "heart")
+            }
+            .padding(.top, 8)
+            .onAppear { Task { await loadReactions() } }
+        }
+
+        @ViewBuilder
+        private func reactionButton(_ type: ReactionType, systemName: String) -> some View {
+            let count = reactionCounts[type] ?? 0
+            Button(action: { Task { await react(type) } }) {
+                HStack(spacing: 4) {
+                    Image(systemName: systemName)
+                        .foregroundColor(userReaction == type ? .yellow : .white)
+                    Text("\(count)")
+                        .foregroundColor(.yellow)
+                }
+            }
+        }
+
+        @MainActor
+        private func loadReactions() async {
+            do {
+                reactionCounts = try await db.fetchReactionCounts(uploadId: upload.id)
+                userReaction = try await db.fetchUserReaction(uploadId: upload.id)
+            } catch {
+                print("⚠️ reaction load failed", error)
+            }
+        }
+
+        @MainActor
+        private func react(_ type: ReactionType) async {
+            do {
+                try await db.setReaction(uploadId: upload.id, reaction: type)
+                await loadReactions()
+            } catch {
+                print("⚠️ reaction set failed", error)
+            }
 
     }
 }
