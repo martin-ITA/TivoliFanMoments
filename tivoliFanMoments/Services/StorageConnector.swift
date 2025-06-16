@@ -34,5 +34,17 @@ final class StorageConnector {
         logger.notice("[StorageConnector] URL for \(path): \(url?.absoluteString ?? "nil")")
         return url                    // URL? now, so the feed knows when it failed
     }
+    
+    /// Uploads raw data to the storage bucket at the given path.
+    func upload(data: Data, path: String) async throws {
+        do {
+            _ = try await bucket.upload(path: path, file: data)
+            logger.notice("[StorageConnector] uploaded file to \(path)")
+        } catch {
+            logger.error("[StorageConnector] upload error: \(error)")
+            throw error
+        }
+    }
+
 
 }

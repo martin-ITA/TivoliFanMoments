@@ -384,6 +384,57 @@ final class DatabaseConnector {
         return decoded.map { $0.fk_begegnung }
     }
 
+    private struct NewMoment: Encodable {
+        let fk_begegnung: Int
+        let minute: Int
+        let art: String        // or MomentArt
+    }
+
+    func createMoment(begegnungId: Int,
+                      minute: Int,
+                      art: String) async throws -> Int {
+
+        let newMoment = NewMoment(
+            fk_begegnung: begegnungId,
+            minute: minute,
+            art: art
+        )
+
+        let response = try await client
+            .from("tbl_moment")
+            .insert(newMoment)    // ← satisfies Encodable
+            .select("pk_moment")
+            .single()
+            .execute()
+
+        struct MomentId: Decodable { let pk_moment: Int }
+        return try JSONDecoder().decode(MomentId.self,
+                                        from: response.data).pk_moment
+    }
+
+    private struct NewUpload: Encodable {
+        let fk_moment: Int
+        let typ: String
+        let beschreibung: String
+        let dateipfad: String
+    }
+
+    func createUpload(momentId: Int,
+                      ext: String,
+                      description: String?) async throws {
+
+        let newUpload = NewUpload(
+            fk_moment: momentId,
+            typ: ext,
+            beschreibung: description ?? "",
+            dateipfad: "\(momentId).\(ext)"
+        )
+
+        try await client
+            .from("tbl_upload")
+            .insert(newUpload)
+            .execute()
+    }
 
 
 }

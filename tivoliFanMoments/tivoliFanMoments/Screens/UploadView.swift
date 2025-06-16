@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct UploadView: View {
     let begegnung: Begegnung
@@ -9,6 +10,12 @@ struct UploadView: View {
     @State private var minute: String = ""
     @State private var selectedMediaType: String = "Foto"
     let mediaTypes = ["Foto", "Video"]
+    
+    @State private var pickerItem: PhotosPickerItem? = nil
+    @State private var mediaData: Data? = nil
+
+    private let db = DatabaseConnector()
+    private let storage = StorageConnector()
     
     var body: some View {
         ZStack {
@@ -49,8 +56,25 @@ struct UploadView: View {
                     }
                     .padding(.horizontal, 20)
                 
+                PhotosPicker(selection: $pickerItem, matching: .any(of: [.images, .videos])) {
+                    Text("Datei auswählen")
+                        .foregroundColor(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.yellow)
+                        .cornerRadius(10)
+                }
+                .onChange(of: pickerItem) { newItem in
+                    Task {
+                        if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                            mediaData = data
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                
                 Button("Datei hochladen") {
-                    // TODO: Upload-Logik
+                    Task { await handleUpload() }
                 }
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
@@ -83,6 +107,25 @@ struct UploadView: View {
                 .padding(.bottom, 10)
             }
             .padding(.top, 30)
+        }
+    }
+    
+    
+    @MainActor
+    private func handleUpload() async {
+        guard let data = mediaData,
+              let minuteInt = Int(minute) else { return }
+
+        do {
+            let momentId = try await db.createMoment(begegnungId: begegnung.id, minute: minuteInt, art: selectedEvent)
+            let ext = selectedMediaType == "Foto" ? "jpg" : "mp4"
+            let folder = selectedMediaType == "Foto" ? "fanuploads/Photos" : "fanuploads/Videos"
+            let path = "\(folder)/\(momentId).\(ext)"
+
+            try await storage.upload(data: data, path: path)
+            try await db.createUpload(momentId: momentId, ext: ext, description: nil)
+        } catch {
+            print("⚠️ upload failed", error)
         }
     }
 }
