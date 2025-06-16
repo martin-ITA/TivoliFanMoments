@@ -16,6 +16,7 @@ struct UploadView: View {
     @State private var pickerItem: PhotosPickerItem? = nil
     @State private var mediaData: Data? = nil
     @State private var fileExtension: String? = nil
+    @State private var isUploading = false
 
     private let db = DatabaseConnector()
     private let storage = StorageConnector()
@@ -23,7 +24,7 @@ struct UploadView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            
+
             VStack(spacing: 20) {
                 Text("Upload")
                     .font(.largeTitle)
@@ -93,6 +94,7 @@ struct UploadView: View {
                 Button("Datei hochladen") {
                     Task { await handleUpload() }
                 }
+                .disabled(isUploading)
                 .foregroundColor(.black)
                 .frame(maxWidth: .infinity)
                 .padding()
@@ -124,6 +126,12 @@ struct UploadView: View {
                 .padding(.bottom, 10)
             }
             .padding(.top, 30)
+
+            if isUploading {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: .yellow))
+            }
         }
     }
     
@@ -132,6 +140,9 @@ struct UploadView: View {
     private func handleUpload() async {
         guard let data = mediaData,
               let minuteInt = Int(minute) else { return }
+
+        isUploading = true
+        defer { isUploading = false }
 
         do {
             let momentId = try await db.createMoment(begegnungId: begegnung.id, minute: minuteInt, art: selectedEvent)
