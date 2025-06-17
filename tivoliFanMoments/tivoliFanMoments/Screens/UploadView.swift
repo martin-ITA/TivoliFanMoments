@@ -48,16 +48,16 @@ struct UploadView: View {
                 .padding(.horizontal, 20)
                 .foregroundColor(.yellow)
                 
-                TextField("", text: $minute)
+                TextField("Minute", text: $minute)
                     .keyboardType(.numberPad)
                     .padding()
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(10)
                     .foregroundColor(.yellow)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow, lineWidth: 1))
-                    .placeholder(when: minute.isEmpty) {
-                        Text("Minute").foregroundColor(.yellow.opacity(0.7))
-                    }
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.yellow, lineWidth: 1)
+                    )
                     .padding(.horizontal, 20)
                 
                 PhotosPicker(selection: $pickerItem, matching: .any(of: [.images, .videos])) {

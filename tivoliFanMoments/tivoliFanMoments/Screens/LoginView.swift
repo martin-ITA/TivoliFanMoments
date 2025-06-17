@@ -30,31 +30,27 @@ struct LoginView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.yellow)
 
-                        TextField("", text: $email)
+                        TextField("E-Mail", text: $email)
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .padding()
                             .background(Color.white.opacity(0.1))
                             .cornerRadius(10)
                             .foregroundColor(.yellow)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow, lineWidth: 1))
-                            .placeholder(when: email.isEmpty) {
-                                Text("E-Mail")
-                                    .foregroundColor(.yellow.opacity(0.7))
-                                    .padding(.leading, 8)
-                            }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.yellow, lineWidth: 1)
+                            )
 
-                        SecureField("", text: $password)
+                        SecureField("Passwort", text: $password)
                             .padding()
                             .background(Color.white.opacity(0.1))
                             .cornerRadius(10)
                             .foregroundColor(.yellow)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.yellow, lineWidth: 1))
-                            .placeholder(when: password.isEmpty) {
-                                Text("Passwort")
-                                    .foregroundColor(.yellow.opacity(0.7))
-                                    .padding(.leading, 8)
-                            }
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.yellow, lineWidth: 1)
+                            )
 
                         if showError, let errorMessage = errorMessage {
                             Text(errorMessage)
