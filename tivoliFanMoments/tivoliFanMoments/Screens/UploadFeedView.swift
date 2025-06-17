@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVKit
+import AVFoundation
 
 struct UploadFeedView: View {
     let moment: Moment
@@ -42,9 +43,10 @@ struct UploadFeedView: View {
 private struct UploadTile: View {
     let upload: Upload
     let storage: StorageConnector
-    
+
     @State private var reactionCounts: [ReactionType: Int] = [:]
     @State private var userReaction: ReactionType? = nil
+    @State private var player: AVPlayer = AVPlayer()
 
     private let db = DatabaseConnector()
     
@@ -52,23 +54,37 @@ private struct UploadTile: View {
         switch upload.kind {
         case .image:
             if let url = storage.url(for: upload) {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:   ProgressView()
-                    case .success(let img): img.resizable().scaledToFit()
-                    default:       Color.gray
+                ZoomableView {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .empty:   ProgressView()
+                        case .success(let img): img.resizable().scaledToFit()
+                        default:       Color.gray
+                        }
                     }
                 }
                 .cornerRadius(12)
-                    .padding(.horizontal)
+                .padding(.horizontal)
             }
 
         case .video:
             if let url = storage.url(for: upload) {
-                VideoPlayer(player: AVPlayer(url: url))
-                    .frame(height: 300)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
+                ZoomableView {
+                    VideoPlayer(player: player)
+                        .onAppear {
+                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                            do {
+                                let session = AVAudioSession.sharedInstance()
+                                try session.setCategory(.playback)
+                                try session.setActive(true)
+                            } catch {
+                                print("⚠️ AudioSession error", error)
+                            }
+                        }
+                }
+                .frame(height: 300)
+                .cornerRadius(12)
+                .padding(.horizontal)
             }
         }
         
