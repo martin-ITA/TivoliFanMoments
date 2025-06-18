@@ -47,55 +47,78 @@ private struct UploadTile: View {
     @State private var reactionCounts: [ReactionType: Int] = [:]
     @State private var userReaction: ReactionType? = nil
     @State private var player: AVPlayer = AVPlayer()
+    @State private var uploaderName: String = ""
+    @State private var contentLoaded = false
 
     private let db = DatabaseConnector()
-    
+
     var body: some View {
-        switch upload.kind {
-        case .image:
-            if let url = storage.url(for: upload) {
-                ZoomableView {
-                    AsyncImage(url: url) { phase in
-                        switch phase {
-                        case .empty:   ProgressView()
-                        case .success(let img): img.resizable().scaledToFit()
-                        default:       Color.gray
-                        }
-                    }
-                }
-                .cornerRadius(12)
-                .padding(.horizontal)
+        VStack(alignment: .leading, spacing: 4) {
+            if contentLoaded && !uploaderName.isEmpty {
+                Text("Hochgeladen von: \(uploaderName)")
+                    .font(.caption)
+                    .foregroundColor(.yellow)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.leading)
             }
 
-        case .video:
-            if let url = storage.url(for: upload) {
-                ZoomableView {
-                    VideoPlayer(player: player)
-                        .onAppear {
-                            player.replaceCurrentItem(with: AVPlayerItem(url: url))
-                            do {
-                                let session = AVAudioSession.sharedInstance()
-                                try session.setCategory(.playback)
-                                try session.setActive(true)
-                            } catch {
-                                print("⚠️ AudioSession error", error)
+            switch upload.kind {
+            case .image:
+                if let url = storage.url(for: upload) {
+                    ZoomableView {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ProgressView()
+                            case .success(let img):
+                                img.resizable().scaledToFit()
+                                    .onAppear { contentLoaded = true }
+                            default:
+                                Color.gray
                             }
                         }
+                    }
+                    .cornerRadius(12)
+                    .padding(.horizontal)
                 }
-                .frame(height: 300)
-                .cornerRadius(12)
-                .padding(.horizontal)
+
+            case .video:
+                if let url = storage.url(for: upload) {
+                    ZoomableView {
+                        VideoPlayer(player: player)
+                            .onAppear {
+                                player.replaceCurrentItem(with: AVPlayerItem(url: url))
+                                do {
+                                    let session = AVAudioSession.sharedInstance()
+                                    try session.setCategory(.playback)
+                                    try session.setActive(true)
+                                } catch {
+                                    print("⚠️ AudioSession error", error)
+                                }
+                                contentLoaded = true
+                            }
+                    }
+                    .frame(height: 300)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                }
+            }
+
+            if contentLoaded {
+                HStack(spacing: 24) {
+                    reactionButton(.like, systemName: "hand.thumbsup")
+                    reactionButton(.lachen, systemName: "face.smiling")
+                    reactionButton(.herz, systemName: "heart")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 8)
             }
         }
-        
-        HStack(spacing: 24) {
-                reactionButton(.like, systemName: "hand.thumbsup")
-                reactionButton(.lachen, systemName: "face.smiling")
-                reactionButton(.herz, systemName: "heart")
-            }
-            .padding(.top, 8)
-            .onAppear { Task { await loadReactions() } }
+        .onAppear {
+            Task { await loadReactions() }
+            Task { await loadUploaderName() }
         }
+    }
 
         @ViewBuilder
         private func reactionButton(_ type: ReactionType, systemName: String) -> some View {
@@ -128,6 +151,21 @@ private struct UploadTile: View {
             } catch {
                 print("⚠️ reaction set failed", error)
             }
+        }
+
+        @MainActor
+        private func loadUploaderName() async {
+            if upload.userId == DatabaseConnector.userProfile?.id {
+                uploaderName = "Dir selbst"
+                return
+            }
+
+            do {
+                uploaderName = try await db.fetchUsername(userId: upload.userId)
+            } catch {
+                print("⚠️ username load failed", error)
+            }
+        }
 
     }
-}
+

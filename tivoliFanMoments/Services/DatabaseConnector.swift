@@ -322,7 +322,7 @@ final class DatabaseConnector {
         do {
             let response = try await client
                 .from("tbl_upload")
-                .select("pk_upload, fk_moment, typ, dateipfad, beschreibung")
+                .select("pk_upload, fk_moment, typ, dateipfad, beschreibung, fk_nutzer")
                 .eq("fk_moment", value: momentId)
                 .order("pk_upload", ascending: true)
                 .execute()
@@ -583,6 +583,19 @@ final class DatabaseConnector {
         } catch {
             throw error        // bubble up everything else
         }
+    }
+
+    /// Returns the username for the given user id.
+    func fetchUsername(userId: Int) async throws -> String {
+        let response = try await client
+            .from("tbl_nutzer")
+            .select("nutzername")
+            .eq("pk_nutzer", value: userId)
+            .single()
+            .execute()
+
+        struct Wrapper: Decodable { let nutzername: String }
+        return try JSONDecoder().decode(Wrapper.self, from: response.data).nutzername
     }
 
 
