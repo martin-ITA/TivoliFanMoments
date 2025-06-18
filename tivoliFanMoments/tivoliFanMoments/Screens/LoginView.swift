@@ -30,7 +30,7 @@ struct LoginView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.yellow)
 
-                        TextField("E-Mail", text: $email)
+                        TextField("E-Mail", text: $email, prompt: Text("E-Mail").foregroundColor(.yellow))
                             .keyboardType(.emailAddress)
                             .autocapitalization(.none)
                             .padding()
@@ -42,7 +42,7 @@ struct LoginView: View {
                                     .stroke(Color.yellow, lineWidth: 1)
                             )
 
-                        SecureField("Passwort", text: $password)
+                        SecureField("Passwort", text: $password, prompt: Text("Passwort").foregroundColor(.yellow))
                             .padding()
                             .background(Color.white.opacity(0.1))
                             .cornerRadius(10)

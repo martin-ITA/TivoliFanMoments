@@ -48,7 +48,7 @@ struct UploadView: View {
                 .padding(.horizontal, 20)
                 .foregroundColor(.yellow)
                 
-                TextField("Minute", text: $minute)
+                TextField("Minute", text: $minute, prompt: Text("Minute").foregroundColor(.yellow))
                     .keyboardType(.numberPad)
                     .padding()
                     .background(Color.white.opacity(0.1))
