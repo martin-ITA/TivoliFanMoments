@@ -393,24 +393,47 @@ final class DatabaseConnector {
     func createMoment(begegnungId: Int,
                       minute: Int,
                       art: String) async throws -> Int {
+        struct MomentId: Decodable { let pk_moment: Int }
 
+        // first we need to check if a moment like this is already present in our database
+        do {
+            let existingResponse = try await client
+                .from("tbl_moment")
+                .select("pk_moment")
+                .eq("fk_begegnung", value: begegnungId)
+                .eq("minute", value: minute)
+                .eq("art", value: art)
+                .single()
+                .execute()
+
+            let existing = try JSONDecoder()
+                .decode(MomentId.self, from: existingResponse.data)
+            return existing.pk_moment
+        } catch let error as PostgrestError where error.code == "PGRST116" {
+            // in this case we know we have to create a new row
+        } catch {
+            throw error
+        }
+
+        // create new row :-)
         let newMoment = NewMoment(
             fk_begegnung: begegnungId,
             minute: minute,
             art: art
         )
 
-        let response = try await client
+        let insertResponse = try await client
             .from("tbl_moment")
-            .insert(newMoment)    // ← satisfies Encodable
+            .insert(newMoment)
             .select("pk_moment")
             .single()
             .execute()
 
-        struct MomentId: Decodable { let pk_moment: Int }
-        return try JSONDecoder().decode(MomentId.self,
-                                        from: response.data).pk_moment
+        let created = try JSONDecoder()
+            .decode(MomentId.self, from: insertResponse.data)
+        return created.pk_moment
     }
+
 
     private struct NewUpload: Encodable {
         let fk_moment: Int
