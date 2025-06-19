@@ -66,16 +66,11 @@ private struct UploadTile: View {
             case .image:
                 if let url = storage.url(for: upload) {
                     ZoomableView {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                            case .success(let img):
-                                img.resizable().scaledToFit()
-                                    .onAppear { contentLoaded = true }
-                            default:
-                                Color.gray
-                            }
+                        CachedAsyncImage(url: url) { image in
+                            image.resizable().scaledToFit()
+                                .onAppear { contentLoaded = true }
+                        } placeholder: {
+                            ProgressView()
                         }
                     }
                     .cornerRadius(12)
