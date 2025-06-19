@@ -49,6 +49,10 @@ private struct UploadTile: View {
     @State private var player: AVPlayer = AVPlayer()
     @State private var uploaderName: String = ""
     @State private var contentLoaded = false
+    @State private var comments: [Kommentar] = []
+    @State private var showAllComments = false
+    @State private var showCommentField = false
+    @State private var newComment: String = ""
 
     private let db = DatabaseConnector()
 
@@ -104,14 +108,49 @@ private struct UploadTile: View {
                     reactionButton(.like, systemName: "hand.thumbsup")
                     reactionButton(.lachen, systemName: "face.smiling")
                     reactionButton(.herz, systemName: "heart")
+                    commentButton()
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.top, 8)
+
+                if showCommentField {
+                    HStack {
+                        TextField("Kommentar", text: $newComment)
+                            .textFieldStyle(.roundedBorder)
+                        Button("Senden") {
+                            Task { await postComment() }
+                        }
+                        .disabled(newComment.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                    .padding(.horizontal)
+                }
+
+                if !comments.isEmpty {
+                    VStack(alignment: .leading, spacing: 4) {
+                        commentView(comments.first!)
+
+                        if comments.count > 1 {
+                            Button(action: { withAnimation { showAllComments.toggle() } }) {
+                                Text(showAllComments ? "Weniger Kommentare anzeigen" : "Mehr Kommentare anzeigen")
+                                    .font(.caption2)
+                                    .foregroundColor(.yellow)
+                            }
+                        }
+
+                        if showAllComments {
+                            ForEach(comments.dropFirst()) { comment in
+                                commentView(comment)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
             }
         }
         .onAppear {
             Task { await loadReactions() }
             Task { await loadUploaderName() }
+            Task { await loadComments() }
         }
     }
 
@@ -138,6 +177,24 @@ private struct UploadTile: View {
             }
         }
 
+        private func commentButton() -> some View {
+            Button(action: { withAnimation { showCommentField.toggle() } }) {
+                Image(systemName: "text.bubble")
+                    .foregroundColor(.white)
+            }
+        }
+
+        private func commentView(_ comment: Kommentar) -> some View {
+            HStack(alignment: .top, spacing: 4) {
+                Text((comment.username ?? "") + ":")
+                    .fontWeight(.bold)
+                    .foregroundColor(.yellow)
+                Text(comment.inhalt)
+                    .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
         @MainActor
         private func react(_ type: ReactionType) async {
             do {
@@ -159,6 +216,27 @@ private struct UploadTile: View {
                 uploaderName = try await db.fetchUsername(userId: upload.userId)
             } catch {
                 print("⚠️ username load failed", error)
+            }
+        }
+
+        @MainActor
+        private func loadComments() async {
+            do {
+                comments = try await db.fetchCommentsWithUsernames(uploadId: upload.id)
+            } catch {
+                print("⚠️ comments load failed", error)
+            }
+        }
+
+        @MainActor
+        private func postComment() async {
+            do {
+                try await db.addComment(uploadId: upload.id, text: newComment)
+                newComment = ""
+                showCommentField = false
+                await loadComments()
+            } catch {
+                print("⚠️ comment post failed", error)
             }
         }
 

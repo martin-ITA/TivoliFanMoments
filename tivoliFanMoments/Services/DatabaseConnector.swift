@@ -598,6 +598,50 @@ final class DatabaseConnector {
         return try JSONDecoder().decode(Wrapper.self, from: response.data).nutzername
     }
 
+    /// Returns all comments for the given upload sorted by creation order.
+    func fetchComments(uploadId: Int) async throws -> [Kommentar] {
+        let response = try await client
+            .from("tbl_kommentar")
+            .select("pk_kommentar, fk_nutzer, fk_upload, inhalt")
+            .eq("fk_upload", value: uploadId)
+            .order("pk_kommentar", ascending: true)
+            .execute()
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .useDefaultKeys
+        return try decoder.decode([Kommentar].self, from: response.data)
+    }
+
+    /// Returns all comments along with the commenting user's name.
+    func fetchCommentsWithUsernames(uploadId: Int) async throws -> [Kommentar] {
+        var loaded = try await fetchComments(uploadId: uploadId)
+        for index in loaded.indices {
+            do {
+                loaded[index].username = try await fetchUsername(userId: loaded[index].userId)
+            } catch {
+                loaded[index].username = "?"
+            }
+        }
+        return loaded
+    }
+
+    /// Inserts a comment for the given upload from the current user.
+    func addComment(uploadId: Int, text: String) async throws {
+        guard let userId = SessionManager.shared.currentUser?.id else { return }
+
+        struct NewComment: Encodable {
+            let fk_nutzer: Int
+            let fk_upload: Int
+            let inhalt: String
+        }
+
+        let values = NewComment(fk_nutzer: userId, fk_upload: uploadId, inhalt: text)
+        try await client
+            .from("tbl_kommentar")
+            .insert(values)
+            .execute()
+    }
+
     // MARK: - User profile helpers
 
     /// Changes the password for the current user if the old password matches.
