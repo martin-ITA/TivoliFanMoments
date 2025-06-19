@@ -598,6 +598,40 @@ final class DatabaseConnector {
         return try JSONDecoder().decode(Wrapper.self, from: response.data).nutzername
     }
 
+    // MARK: - User profile helpers
+
+    /// Changes the password for the current user if the old password matches.
+    func changePassword(old: String, new: String) async throws {
+        guard let user = SessionManager.shared.currentUser else { return }
+        _ = try await client
+            .from("tbl_nutzer")
+            .update(["passwort": new])
+            .eq("pk_nutzer", value: user.id)
+            .eq("passwort", value: old)
+            .single()
+            .execute()
+    }
+
+    /// Returns how many matches the given user has visited.
+    func countVisitedMatches(userId: Int) async throws -> Int {
+        let response = try await client
+            .from("tbl_besuche")
+            .select("pk_besuch", count: .exact)
+            .eq("fk_nutzer", value: userId)
+            .execute()
+        return response.count ?? 0
+    }
+
+    /// Returns how many uploads the given user has created.
+    func countUploads(userId: Int) async throws -> Int {
+        let response = try await client
+            .from("tbl_upload")
+            .select("pk_upload", count: .exact)
+            .eq("fk_nutzer", value: userId)
+            .execute()
+        return response.count ?? 0
+    }
+
 
 
 
