@@ -29,6 +29,15 @@ struct MainView: View {
             }
             .accentColor(.yellow)
             .background(Color.black.ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: ProfileView()) {
+                        Image(systemName: "person.circle")
+                            .foregroundColor(.yellow)
+                            .frame(width: 48, height: 48)
+                    }
+                }
+            }
         }
     }
 }
