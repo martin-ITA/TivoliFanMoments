@@ -7,31 +7,29 @@ struct GamesOverviewView: View {
     @State private var selectedSaisonId: Int? = nil
 
     var body: some View {
-        NavigationView {
-            ZStack {
-                Color.black.ignoresSafeArea()
-                mainContent
+        ZStack {
+            Color.black.ignoresSafeArea()
+            mainContent
+        }
+        .navigationTitle("Spiele")
+        .navigationBarTitleDisplayMode(.inline)
+
+        .alert(item: errorAlertBinding) { error in
+            Alert(
+                title: Text("Datenbank‐Fehler"),
+                message: Text(error.message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+        .onChange(of: saisonVM.saisons) {
+            if selectedSaisonId == nil, let first = saisonVM.saisons.first {
+                selectedSaisonId = 1
             }
-            .navigationTitle("Spiele")
-            .navigationBarTitleDisplayMode(.inline)
-            
-            .alert(item: errorAlertBinding) { error in
-                Alert(
-                    title: Text("Datenbank‐Fehler"),
-                    message: Text(error.message),
-                    dismissButton: .default(Text("OK"))
-                )
-            }
-            .onChange(of: saisonVM.saisons) {
-                if selectedSaisonId == nil, let first = saisonVM.saisons.first {
-                    selectedSaisonId = first.id
-                }
-            }
-            .onChange(of: selectedSaisonId) { newId in
-                if let saisonId = newId {
-                    Task {
-                        await begegnungVM.load(saisonId: saisonId)
-                    }
+        }
+        .onChange(of: selectedSaisonId) { newId in
+            if let saisonId = newId {
+                Task {
+                    await begegnungVM.load(saisonId: saisonId)
                 }
             }
         }

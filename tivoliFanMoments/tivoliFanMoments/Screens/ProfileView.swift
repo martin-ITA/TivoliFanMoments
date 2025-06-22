@@ -26,9 +26,9 @@ struct ProfileView: View {
                     Text("Statistiken")
                         .font(.headline)
                         .foregroundColor(.yellow)
-                    Text("Besuchte Spiele: \(matchesCount)")
+                    Text("Du hast \(matchesCount) Spiel/e besucht.")
                         .foregroundColor(.yellow)
-                    Text("Uploads: \(uploadCount)")
+                    Text("Du hast \(uploadCount) Medien hochgeladen.")
                         .foregroundColor(.yellow)
                 }
 

@@ -7,7 +7,7 @@ struct UploadView: View {
     let begegnung: Begegnung
     
     @State private var selectedEvent = "Tor"
-    let events = ["Tor", "Torchance", "Foul", "Gelbe Karte", "Rote Karte", "Ecke", "Freistoss", "Elfmeter"]
+    let events = ["Tor", "Torchance", "Foul", "Gelbe Karte", "Rote Karte", "Ecke", "Freistoss", "Elfmeter", "Choreo", "Sonstiges"]
     
     @State private var minute: String = ""
     @State private var selectedMediaType: String = "Foto"
