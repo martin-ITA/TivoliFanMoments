@@ -81,7 +81,7 @@ private struct SpielHeader: View {
             Text("\(begegnung.heimTore ?? 0) : \(begegnung.gastTore ?? 0)")
                 .font(.system(size: 36, weight: .bold))
                 .foregroundColor(.yellow)
-                .frame(width: 70, alignment: .center)
+                .frame(width: 80, alignment: .center)
             
             Image("big\(begegnung.gast.id)")
                 .resizable()
